@@ -589,3 +589,4 @@ if leads_df is not None and purchases_df is not None and ymetrica_df is not None
         
 else:
     st.warning("⚠️ Некоторые файлы не удалось загрузить. Проверьте наличие файлов в директории.")
+# версия 15.08.
