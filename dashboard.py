@@ -1,7 +1,5 @@
 import pandas as pd
 import streamlit as st
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 def main():
     # Чтение CSV файлов с обработкой ошибок
@@ -810,97 +808,7 @@ def main():
                         # Показываем одну таблицу с сегментацией по дате и источнику трафика
                         st.dataframe(display_df, use_container_width=True)
                         
-                        # График по источникам трафика (теперь встроен в основную таблицу)
-                        st.subheader("📈 График лидов по источникам трафика:")
-                        
-                        # Создаем график на основе основной таблицы
-                        fig_traffic = go.Figure()
-                        
-                        # Добавляем линии для каждого источника трафика
-                        for source in analytics_df['Источник трафика'].unique():
-                            source_data = analytics_df[analytics_df['Источник трафика'] == source]
-                            source_data['Месяц'] = source_data['Месяц'].astype(str)
-                            
-                            fig_traffic.add_trace(
-                                go.Scatter(
-                                    x=source_data['Месяц'],
-                                    y=source_data['Количество лидов'],
-                                    mode='lines+markers',
-                                    name=source,
-                                    line=dict(width=3)
-                                )
-                            )
-                        
-                        fig_traffic.update_layout(
-                            height=500,
-                            title_text="Динамика лидов по источникам трафика",
-                            xaxis_title="Месяц",
-                            yaxis_title="Количество лидов",
-                            showlegend=True
-                        )
-                        
-                        st.plotly_chart(fig_traffic, use_container_width=True)
-                        
-                        # Создаем график
-                        st.subheader("📊 График динамики лидов по месяцам:")
-                        
-                        # Конвертируем Period в строку для отображения
-                        analytics_df_display = analytics_df.reset_index()
-                        analytics_df_display['Месяц'] = analytics_df_display['Месяц'].astype(str)
-                        
-                        # Создаем график с двумя линиями
-                        import plotly.express as px
-                        import plotly.graph_objects as go
-                        from plotly.subplots import make_subplots
-                        
-                        fig = make_subplots(
-                            rows=2, cols=1,
-                            subplot_titles=('Количество лидов по месяцам', 'Конверсия в предквалификацию (%)'),
-                            vertical_spacing=0.1
-                        )
-                        
-                        # Первый график - количество лидов
-                        fig.add_trace(
-                            go.Scatter(
-                                x=analytics_df_display['Месяц'],
-                                y=analytics_df_display['Количество лидов'],
-                                mode='lines+markers',
-                                name='Количество лидов',
-                                line=dict(color='blue', width=3)
-                            ),
-                            row=1, col=1
-                        )
-                        
-                        fig.add_trace(
-                            go.Scatter(
-                                x=analytics_df_display['Месяц'],
-                                y=analytics_df_display['Предквалифицированные лиды'],
-                                mode='lines+markers',
-                                name='Предквалифицированные лиды',
-                                line=dict(color='green', width=3)
-                            ),
-                            row=1, col=1
-                        )
-                        
-                        # Второй график - конверсия
-                        fig.add_trace(
-                            go.Scatter(
-                                x=analytics_df_display['Месяц'],
-                                y=analytics_df_display['Конверсия в предквалификацию (%)'],
-                                mode='lines+markers',
-                                name='Конверсия (%)',
-                                line=dict(color='red', width=3)
-                            ),
-                            row=2, col=1
-                        )
-                        
-                        fig.update_layout(
-                            height=600,
-                            title_text="Динамика лидов и конверсии по месяцам",
-                            showlegend=True
-                        )
-                        
-                        st.plotly_chart(fig, use_container_width=True)
+                        # Графики убраны для упрощения
                         
                         # ===== ТАБЛИЦА 2: Аналитика лидов по месяцам (без сегментации по источникам) =====
                         st.subheader("📊 ТАБЛИЦА 2: Аналитика лидов по месяцам (без сегментации по источникам)")
@@ -1382,62 +1290,7 @@ def main():
                         # Показываем аналитическую таблицу 2
                         st.dataframe(analytics_df_monthly_with_total, use_container_width=True)
                         
-                        # Создаем график для таблицы 2
-                        st.subheader("📈 График динамики лидов по месяцам (без сегментации по источникам):")
-                        
-                        # Конвертируем Period в строку для отображения
-                        analytics_df_monthly_display = analytics_df_monthly.reset_index()
-                        analytics_df_monthly_display['Месяц'] = analytics_df_monthly_display['Месяц'].astype(str)
-                        
-                        # Создаем график с двумя линиями
-                        fig_monthly = make_subplots(
-                            rows=2, cols=1,
-                            subplot_titles=('Количество лидов по месяцам', 'Конверсия в предквалификацию (%)'),
-                            vertical_spacing=0.1
-                        )
-                        
-                        # Первый график - количество лидов
-                        fig_monthly.add_trace(
-                            go.Scatter(
-                                x=analytics_df_monthly_display['Месяц'],
-                                y=analytics_df_monthly_display['Количество лидов'],
-                                mode='lines+markers',
-                                name='Количество лидов',
-                                line=dict(color='blue', width=3)
-                            ),
-                            row=1, col=1
-                        )
-                        
-                        fig_monthly.add_trace(
-                            go.Scatter(
-                                x=analytics_df_monthly_display['Месяц'],
-                                y=analytics_df_monthly_display['Предквалифицированные лиды'],
-                                mode='lines+markers',
-                                name='Предквалифицированные лиды',
-                                line=dict(color='green', width=3)
-                            ),
-                            row=1, col=1
-                        )
-                        
-                        # Второй график - конверсия
-                        fig_monthly.add_trace(
-                            go.Scatter(
-                                x=analytics_df_monthly_display['Месяц'],
-                                y=analytics_df_monthly_display['Конверсия в предквалификацию (%)'],
-                                mode='lines+markers',
-                                name='Конверсия (%)',
-                                line=dict(color='red', width=3)
-                            ),
-                            row=2, col=1
-                        )
-                        
-                        fig_monthly.update_layout(
-                            height=600,
-                            title_text="Динамика лидов и конверсии по месяцам (без сегментации по источникам)",
-                            showlegend=True
-                        )
-                        
-                        st.plotly_chart(fig_monthly, use_container_width=True)
+                        # График убран для упрощения
                         
                     else:
                         st.warning("⚠️ Столбец 'Этап сделки' не найден в данных")
