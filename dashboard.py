@@ -2,591 +2,777 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-# Чтение CSV файлов с обработкой ошибок
-try:
-    # Читаем файл с лидами
-    leads_df = pd.read_csv('leads2025.csv')
-    st.success(f"✅ Файл leads2025.csv успешно загружен! Размер: {leads_df.shape[0]} строк, {leads_df.shape[1]} столбцов")
-    
-except FileNotFoundError:
-    st.error("❌ Файл leads2025.csv не найден!")
-    leads_df = None
-except Exception as e:
-    st.error(f"❌ Ошибка при чтении файла leads2025.csv: {str(e)}")
-    leads_df = None
-
-try:
-    # Читаем файл с покупками
-    purchases_df = pd.read_csv('purchases2025.csv')
-    st.success(f"✅ Файл purchases2025.csv успешно загружен! Размер: {purchases_df.shape[0]} строк, {purchases_df.shape[1]} столбцов")
-    
-except FileNotFoundError:
-    st.error("❌ Файл purchases2025.csv не найден!")
-    purchases_df = None
-except Exception as e:
-    st.error(f"❌ Ошибка при чтении файла purchases2025.csv: {str(e)}")
-    purchases_df = None
-
-try:
-    # Читаем файл с данными Яндекс.Метрики
-    ymetrica_df = pd.read_csv('YMetrica.csv')
-    st.success(f"✅ Файл YMetrica.csv успешно загружен! Размер: {ymetrica_df.shape[0]} строк, {ymetrica_df.shape[1]} столбцов")
-    
-except FileNotFoundError:
-    st.error("❌ Файл YMetrica.csv не найден!")
-    ymetrica_df = None
-except Exception as e:
-    st.error(f"❌ Ошибка при чтении файла YMetrica.csv: {str(e)}")
-    ymetrica_df = None
-
-# Проверяем, что все файлы загружены успешно
-if leads_df is not None and purchases_df is not None and ymetrica_df is not None:
-    st.success("🎉 Все файлы успешно загружены!")
-    
-    # Показываем краткую информацию о данных
-    st.subheader("📊 Краткая информация о данных:")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("Лиды", f"{leads_df.shape[0]:,}")
-        st.metric("Столбцы лидов", leads_df.shape[1])
-        
-    with col2:
-        st.metric("Покупки", f"{purchases_df.shape[0]:,}")
-        st.metric("Столбцы покупок", purchases_df.shape[1])
-        
-    with col3:
-        st.metric("События YM", f"{ymetrica_df.shape[0]:,}")
-        st.metric("Столбцы YM", ymetrica_df.shape[1])
-    
-    # ТАБЛИЦА 1: Аналитика лидов по месяцам (только из leads2025)
-    st.subheader("📊 ТАБЛИЦА 1: Аналитика лидов по месяцам")
-    
+def main():
+    # Чтение CSV файлов с обработкой ошибок
     try:
-        # Создаем аналитическую таблицу на основе всех лидов из leads2025
-        st.info("📋 Создаем аналитическую таблицу на основе всех лидов из leads2025...")
+        # Читаем файл с лидами
+        leads_df = pd.read_csv('leads2025.csv')
+        st.success(f"✅ Файл leads2025.csv успешно загружен! Размер: {leads_df.shape[0]} строк, {leads_df.shape[1]} столбцов")
         
-        # Берем все лиды из leads2025
-        leads_analysis = leads_df.copy()
+    except FileNotFoundError:
+        st.error("❌ Файл leads2025.csv не найден!")
+        leads_df = None
+    except Exception as e:
+        st.error(f"❌ Ошибка при чтении файла leads2025.csv: {str(e)}")
+        leads_df = None
+
+    try:
+        # Читаем файл с покупками
+        purchases_df = pd.read_csv('purchases2025.csv')
+        st.success(f"✅ Файл purchases2025.csv успешно загружен! Размер: {purchases_df.shape[0]} строк, {purchases_df.shape[1]} столбцов")
         
-        # Шаг 1: Находим совпадения с YMetrica для определения источника трафика
-        st.info("🔍 Определяем источники трафика для лидов...")
+    except FileNotFoundError:
+        st.error("❌ Файл purchases2025.csv не найден!")
+        purchases_df = None
+    except Exception as e:
+        st.error(f"❌ Ошибка при чтении файла purchases2025.csv: {str(e)}")
+        purchases_df = None
+
+    try:
+        # Читаем файл с данными Яндекс.Метрики
+        ymetrica_df = pd.read_csv('YMetrica.csv')
+        st.success(f"✅ Файл YMetrica.csv успешно загружен! Размер: {ymetrica_df.shape[0]} строк, {ymetrica_df.shape[1]} столбцов")
+        
+    except FileNotFoundError:
+        st.error("❌ Файл YMetrica.csv не найден!")
+        ymetrica_df = None
+    except Exception as e:
+        st.error(f"❌ Ошибка при чтении файла YMetrica.csv: {str(e)}")
+        ymetrica_df = None
+
+    try:
+        # Читаем файл с активациями с автоматическим определением разделителя
+        activations_df = pd.read_csv('Активации 1.01-1.04.csv', sep=None, engine='python', encoding='utf-8')
+        st.success(f"✅ Файл Активации 1.01-1.04.csv успешно загружен! Размер: {activations_df.shape[0]} строк, {activations_df.shape[1]} столбцов")
+        
+    except FileNotFoundError:
+        st.error("❌ Файл Активации 1.01-1.04.csv не найден!")
+        activations_df = None
+    except Exception as e:
+        st.error(f"❌ Ошибка при чтении файла Активации 1.01-1.04.csv: {str(e)}")
+        # Пробуем альтернативные способы чтения
         try:
-            # Инициализация столбца по умолчанию
-            leads_analysis['Источник трафика'] = 'Неизвестен'
+            st.info("🔄 Пробуем альтернативные способы чтения файла...")
+            # Пробуем с разными разделителями
+            for sep in [',', ';', '\t', '|']:
+                try:
+                    activations_df = pd.read_csv('Активации 1.01-1.04.csv', sep=sep, encoding='utf-8')
+                    st.success(f"✅ Файл успешно прочитан с разделителем '{sep}'! Размер: {activations_df.shape[0]} строк, {activations_df.shape[1]} столбцов")
+                    break
+                except:
+                    continue
             
-            # Проверяем наличие необходимых столбцов
-            if 'ClientID' not in ymetrica_df.columns:
-                st.warning("⚠️ В YMetrica отсутствует столбец 'ClientID'. Все источники помечены как 'Неизвестен'.")
-            elif 'firstTrafficSource' not in ymetrica_df.columns:
-                st.warning("⚠️ В YMetrica отсутствует столбец 'firstTrafficSource'. Все источники помечены как 'Неизвестен'.")
-            else:
-                # Функция нормализации идентификаторов: обрезаем пробелы, убираем .0 и неалфанум символы
-                def _normalize(series):
-                    return (
-                        series.astype(str)
-                        .str.strip()
-                        .str.replace(r'\\.0$', '', regex=True)
-                        .str.replace(r'[^0-9A-Za-z]+', '', regex=True)
-                        .str.lower()
-                    )
-                
-                # Нормализуем идентификаторы в YMetrica
-                ym_map_df = pd.DataFrame({
-                    'ClientID_norm': _normalize(ymetrica_df['ClientID']),
-                    'firstTrafficSource': ymetrica_df['firstTrafficSource']
-                })
-                ym_map_df = ym_map_df.dropna(subset=['ClientID_norm'])
-                ym_map_df = ym_map_df[ym_map_df['ClientID_norm'].str.len() > 0]
-                ym_map_df = ym_map_df.drop_duplicates(subset=['ClientID_norm'], keep='first')
-                ym_mapping = dict(zip(ym_map_df['ClientID_norm'], ym_map_df['firstTrafficSource']))
-                
-                # Определяем имена столбцов в leads (поддержка альтернативных имен)
-                yclid_col = 'Yclid' if 'Yclid' in leads_analysis.columns else ('yclid' if 'yclid' in leads_analysis.columns else None)
-                ymuid_col = '_ym_uid' if '_ym_uid' in leads_analysis.columns else ('ym_uid' if 'ym_uid' in leads_analysis.columns else None)
-                
-                # Нормализуем идентификаторы в leads
-                leads_analysis['Yclid_norm'] = _normalize(leads_analysis[yclid_col]) if yclid_col else ''
-                leads_analysis['_ym_uid_norm'] = _normalize(leads_analysis[ymuid_col]) if ymuid_col else ''
-                
-                # Диагностика перекрытий
-                ym_clientids = ym_map_df['ClientID_norm']
-                yclid_nonempty_unique = leads_analysis.loc[leads_analysis['Yclid_norm'] != '', 'Yclid_norm'].nunique()
-                ymuid_nonempty_unique = leads_analysis.loc[leads_analysis['_ym_uid_norm'] != '', '_ym_uid_norm'].nunique()
-                ym_unique = ym_clientids.nunique()
-                overlap_yclid = leads_analysis['Yclid_norm'].isin(ym_clientids.values).sum()
-                overlap_ymuid = leads_analysis['_ym_uid_norm'].isin(ym_clientids.values).sum()
-                st.info(f"Yclid уникальных (не пустых): {yclid_nonempty_unique}, _ym_uid уникальных (не пустых): {ymuid_nonempty_unique}, YM ClientID уникальных: {ym_unique}, пересечений Yclid↔ClientID: {overlap_yclid}, пересечений _ym_uid↔ClientID: {overlap_ymuid}")
-                
-                # Сопоставляем источники: сначала по Yclid, затем по _ym_uid
-                yclid_sources = leads_analysis['Yclid_norm'].map(ym_mapping)
-                ymuid_sources = leads_analysis['_ym_uid_norm'].map(ym_mapping)
-                final_sources = yclid_sources.fillna(ymuid_sources)
-                
-                # Применяем источники в таблицу лидов
-                leads_analysis.loc[final_sources.notna(), 'Источник трафика'] = final_sources[final_sources.notna()]
-                
-                # Подсчет статистики
-                matched_by_yclid = int((yclid_sources.notna()).sum())
-                matched_by_ym_uid = int(((yclid_sources.isna()) & (ymuid_sources.notna())).sum())
-                unmatched = int((leads_analysis['Источник трафика'] == 'Неизвестен').sum())
-                
-                st.success(f"✅ Источники трафика определены: по Yclid - {matched_by_yclid}, по _ym_uid - {matched_by_ym_uid}, неизвестно - {unmatched}")
-        except Exception as e:
-            st.error(f"❌ Ошибка при определении источников трафика: {str(e)}")
+            if activations_df is None:
+                # Пробуем с автоматическим определением кодировки
+                try:
+                    activations_df = pd.read_csv('Активации 1.01-1.04.csv', sep=None, engine='python', encoding='latin-1')
+                    st.success(f"✅ Файл успешно прочитан с кодировкой latin-1! Размер: {activations_df.shape[0]} строк, {activations_df.shape[1]} столбцов")
+                except:
+                    st.error("❌ Не удалось прочитать файл ни одним из способов")
+                    activations_df = None
+                    
+        except Exception as e2:
+            st.error(f"❌ Все попытки чтения файла не удались: {str(e2)}")
+            activations_df = None
+
+    # Проверяем, что основные файлы загружены успешно
+    if leads_df is not None and purchases_df is not None and ymetrica_df is not None:
+        st.success("🎉 Все файлы успешно загружены!")
         
-        # Обрабатываем столбец 'Дата создания'
-        if 'Дата создания' in leads_analysis.columns:
-            # Конвертируем в datetime и извлекаем месяц
-            leads_analysis['Дата создания'] = pd.to_datetime(leads_analysis['Дата создания'], errors='coerce')
-            leads_analysis['Месяц'] = leads_analysis['Дата создания'].dt.to_period('M')
+        # Показываем краткую информацию о данных
+        st.subheader("📊 Краткая информация о данных:")
+        
+        # Диагностика файла активаций
+        if activations_df is not None:
+            st.info("🔍 Диагностика файла активаций:")
+            st.write(f"**Колонки:** {list(activations_df.columns)}")
+            st.write(f"**Типы данных:** {activations_df.dtypes.to_dict()}")
+            st.write("**Первые 5 строк:**")
+            st.dataframe(activations_df.head(), use_container_width=True)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Лиды", f"{leads_df.shape[0]:,}")
+            st.metric("Столбцы лидов", leads_df.shape[1])
             
-            # Убираем строки без даты
-            leads_analysis_clean = leads_analysis[leads_analysis['Месяц'].notna()].copy()
+        with col2:
+            st.metric("Покупки", f"{purchases_df.shape[0]:,}")
+            st.metric("Столбцы покупок", purchases_df.shape[1])
             
-            if len(leads_analysis_clean) > 0:
-                # Создаем аналитическую таблицу по месяцам И источникам трафика
-                if 'Этап сделки' in leads_analysis_clean.columns:
-                    # Группируем по месяцу и источнику трафика
-                    analytics_df = leads_analysis_clean.groupby(['Месяц', 'Источник трафика']).agg({
-                        'ID': 'count',  # Количество лидов по месяцам и источникам
-                    }).rename(columns={
-                        'ID': 'Количество лидов'
-                    }).reset_index()
+        with col3:
+            st.metric("События YM", f"{ymetrica_df.shape[0]:,}")
+            st.metric("Столбцы YM", ymetrica_df.shape[1])
+            
+        with col4:
+            if activations_df is not None:
+                st.metric("Активации", f"{activations_df.shape[0]:,}")
+                st.metric("Столбцы активаций", activations_df.shape[1])
+            else:
+                st.metric("Активации", "Не загружен")
+                st.metric("Столбцы активаций", "N/A")
+        
+        # ТАБЛИЦА 1: Аналитика лидов по месяцам (только из leads2025)
+        st.subheader("📊 ТАБЛИЦА 1: Аналитика лидов по месяцам")
+        
+        try:
+            # Создаем аналитическую таблицу на основе всех лидов из leads2025
+            st.info("📋 Создаем аналитическую таблицу на основе всех лидов из leads2025...")
+            
+            # Берем все лиды из leads2025
+            leads_analysis = leads_df.copy()
+            
+            # Шаг 1: Находим совпадения с YMetrica для определения источника трафика
+            st.info("🔍 Определяем источники трафика для лидов...")
+            try:
+                # Инициализация столбца по умолчанию
+                leads_analysis['Источник трафика'] = 'Неизвестен'
+                
+                # Проверяем наличие необходимых столбцов
+                if 'ClientID' not in ymetrica_df.columns:
+                    st.warning("⚠️ В YMetrica отсутствует столбец 'ClientID'. Все источники помечены как 'Неизвестен'.")
+                elif 'firstTrafficSource' not in ymetrica_df.columns:
+                    st.warning("⚠️ В YMetrica отсутствует столбец 'firstTrafficSource'. Все источники помечены как 'Неизвестен'.")
+                else:
+                    # Функция нормализации идентификаторов: обрезаем пробелы, убираем .0 и неалфанум символы
+                    def _normalize(series):
+                        return (
+                            series.astype(str)
+                            .str.strip()
+                            .str.replace(r'\\.0$', '', regex=True)
+                            .str.replace(r'[^0-9A-Za-z]+', '', regex=True)
+                            .str.lower()
+                        )
                     
-                    # Создаем маску для предквалифицированных лидов
-                    prequalified_mask = leads_analysis_clean['Этап сделки'] == 'Лид предквалифицирован'
+                    # Нормализуем идентификаторы в YMetrica
+                    ym_map_df = pd.DataFrame({
+                        'ClientID_norm': _normalize(ymetrica_df['ClientID']),
+                        'firstTrafficSource': ymetrica_df['firstTrafficSource']
+                    })
+                    ym_map_df = ym_map_df.dropna(subset=['ClientID_norm'])
+                    ym_map_df = ym_map_df[ym_map_df['ClientID_norm'].str.len() > 0]
+                    ym_map_df = ym_map_df.drop_duplicates(subset=['ClientID_norm'], keep='first')
+                    ym_mapping = dict(zip(ym_map_df['ClientID_norm'], ym_map_df['firstTrafficSource']))
                     
-                    # Группируем предквалифицированные лиды по месяцам и источникам
-                    prequalified_by_month_source = leads_analysis_clean[prequalified_mask].groupby(['Месяц', 'Источник трафика'])['ID'].count().reset_index()
-                    prequalified_by_month_source = prequalified_by_month_source.rename(columns={'ID': 'Предквалифицированные лиды'})
+                    # Определяем имена столбцов в leads (поддержка альтернативных имен)
+                    yclid_col = 'Yclid' if 'Yclid' in leads_analysis.columns else ('yclid' if 'yclid' in leads_analysis.columns else None)
+                    ymuid_col = '_ym_uid' if '_ym_uid' in leads_analysis.columns else ('ym_uid' if 'ym_uid' in leads_analysis.columns else None)
                     
-                    # Объединяем основную таблицу с предквалифицированными лидами
-                    analytics_df = analytics_df.merge(
-                        prequalified_by_month_source,
-                        on=['Месяц', 'Источник трафика'],
-                        how='left'
-                    )
+                    # Нормализуем идентификаторы в leads
+                    leads_analysis['Yclid_norm'] = _normalize(leads_analysis[yclid_col]) if yclid_col else ''
+                    leads_analysis['_ym_uid_norm'] = _normalize(leads_analysis[ymuid_col]) if ymuid_col else ''
                     
-                    # Заполняем NaN значения нулями
-                    analytics_df['Предквалифицированные лиды'] = analytics_df['Предквалифицированные лиды'].fillna(0).astype(int)
+                    # Диагностика перекрытий
+                    ym_clientids = ym_map_df['ClientID_norm']
+                    yclid_nonempty_unique = leads_analysis.loc[leads_analysis['Yclid_norm'] != '', 'Yclid_norm'].nunique()
+                    ymuid_nonempty_unique = leads_analysis.loc[leads_analysis['_ym_uid_norm'] != '', '_ym_uid_norm'].nunique()
+                    ym_unique = ym_clientids.nunique()
+                    overlap_yclid = leads_analysis['Yclid_norm'].isin(ym_clientids.values).sum()
+                    overlap_ymuid = leads_analysis['_ym_uid_norm'].isin(ym_clientids.values).sum()
+                    st.info(f"Yclid уникальных (не пустых): {yclid_nonempty_unique}, _ym_uid уникальных (не пустых): {ymuid_nonempty_unique}, YM ClientID уникальных: {ym_unique}, пересечений Yclid↔ClientID: {overlap_yclid}, пересечений _ym_uid↔ClientID: {overlap_ymuid}")
                     
-                    # Добавляем столбец конверсии в предквалификацию
-                    analytics_df['Конверсия в предквалификацию (%)'] = (
-                        (analytics_df['Предквалифицированные лиды'] / analytics_df['Количество лидов'] * 100)
-                        .round(2)
-                    )
+                    # Сопоставляем источники: сначала по Yclid, затем по _ym_uid
+                    yclid_sources = leads_analysis['Yclid_norm'].map(ym_mapping)
+                    ymuid_sources = leads_analysis['_ym_uid_norm'].map(ym_mapping)
+                    final_sources = yclid_sources.fillna(ymuid_sources)
                     
-                    # Сортируем по месяцам
-                    analytics_df = analytics_df.sort_values(['Месяц', 'Источник трафика'])
+                    # Применяем источники в таблицу лидов
+                    leads_analysis.loc[final_sources.notna(), 'Источник трафика'] = final_sources[final_sources.notna()]
                     
-                    # Добавляем столбец "Купили" - кто из предквалифицированных лидов в итоге купил
-                    st.info("🔍 Анализируем покупки среди предквалифицированных лидов...")
+                    # Подсчет статистики
+                    matched_by_yclid = int((yclid_sources.notna()).sum())
+                    matched_by_ym_uid = int(((yclid_sources.isna()) & (ymuid_sources.notna())).sum())
+                    unmatched = int((leads_analysis['Источник трафика'] == 'Неизвестен').sum())
                     
-                    # Оптимизация: работаем только с предквалифицированными лидами для экономии памяти
-                    prequalified_leads = leads_analysis_clean[leads_analysis_clean['Этап сделки'] == 'Лид предквалифицирован'].copy()
-                    
-                    if len(prequalified_leads) > 0:
-                        st.info(f"📊 Найдено {len(prequalified_leads)} предквалифицированных лидов для анализа покупок")
+                    st.success(f"✅ Источники трафика определены: по Yclid - {matched_by_yclid}, по _ym_uid - {matched_by_ym_uid}, неизвестно - {unmatched}")
+            except Exception as e:
+                st.error(f"❌ Ошибка при определении источников трафика: {str(e)}")
+            
+            # Обрабатываем столбец 'Дата создания'
+            if 'Дата создания' in leads_analysis.columns:
+                # Конвертируем в datetime и извлекаем месяц
+                leads_analysis['Дата создания'] = pd.to_datetime(leads_analysis['Дата создания'], errors='coerce')
+                leads_analysis['Месяц'] = leads_analysis['Дата создания'].dt.to_period('M')
+                
+                # Убираем строки без даты
+                leads_analysis_clean = leads_analysis[leads_analysis['Месяц'].notna()].copy()
+                
+                if len(leads_analysis_clean) > 0:
+                    # Создаем аналитическую таблицу по месяцам И источникам трафика
+                    if 'Этап сделки' in leads_analysis_clean.columns:
+                        # Группируем по месяцу и источнику трафика
+                        analytics_df = leads_analysis_clean.groupby(['Месяц', 'Источник трафика']).agg({
+                            'ID': 'count',  # Количество лидов по месяцам и источникам
+                        }).rename(columns={
+                            'ID': 'Количество лидов'
+                        }).reset_index()
                         
-                        # Создаем DataFrame для хранения результатов по месяцам и источникам трафика
-                        purchased_results = []
+                        # ===== НОВАЯ ЛОГИКА СТОЛБЦА "НОВЫЕ АКТИВАЦИИ ТСД" =====
+                        st.info("🔍 Создаем столбец 'Новые активации ТСД'...")
                         
-                        # Создаем множество для отслеживания уже учтенных контактов
-                        processed_contacts = set()
+                        # 1. Создаем столбец "Новые активации ТСД" и инициализируем нулями
+                        analytics_df['Новые активации ТСД'] = 0
                         
-                        # Анализируем каждый месяц и источник трафика отдельно для экономии памяти
-                        for (month, source) in prequalified_leads[['Месяц', 'Источник трафика']].drop_duplicates().values:
-                            month_source_leads = prequalified_leads[
-                                (prequalified_leads['Месяц'] == month) & 
-                                (prequalified_leads['Источник трафика'] == source)
-                            ]
-                            purchased_count = 0
+                        # 2. Получаем данные из purchases2025 - столбец "Номер счета 1С"
+                        if 'Номер счета 1С' in purchases_df.columns:
+                            purchase_accounts = purchases_df['Номер счета 1С'].dropna().astype(str).unique()
+                            st.info(f"📊 Найдено {len(purchase_accounts)} уникальных номеров счетов 1С в purchases2025")
+                        else:
+                            st.warning("⚠️ В purchases2025 отсутствует столбец 'Номер счета 1С'")
+                            purchase_accounts = []
+                        
+                        # 3. Получаем данные из "Активации 1.01-1.04" - столбец "Счет"
+                        if activations_df is not None and 'Счет' in activations_df.columns:
+                            activation_accounts = activations_df['Счет'].dropna().astype(str).unique()
+                            st.info(f"📊 Найдено {len(activation_accounts)} уникальных номеров счетов в активациях")
+                        else:
+                            st.warning("⚠️ Файл активаций не загружен или отсутствует столбец 'Счет'")
+                            activation_accounts = []
+                        
+                        # 4. Сравниваем данные и находим совпадения
+                        if len(purchase_accounts) > 0 and len(activation_accounts) > 0:
+                            # Преобразуем в множества для быстрого поиска
+                            purchase_set = set(purchase_accounts)
+                            activation_set = set(activation_accounts)
                             
-                            # Для каждого лида в месяце ищем покупки
-                            for _, lead in month_source_leads.iterrows():
-                                found_purchase = False
-                                
-                                # Создаем уникальный идентификатор контакта для проверки дубликатов
-                                contact_key = None
-                                
-                                # Определяем ключ контакта (приоритет: ClientID > Yclid > _ym_uid > Основной контакт)
-                                if pd.notna(lead['ClientID']) and lead['ClientID'] != '':
-                                    contact_key = f"ClientID_{lead['ClientID']}"
-                                elif pd.notna(lead['Yclid']) and lead['Yclid'] != '':
-                                    contact_key = f"Yclid_{lead['Yclid']}"
-                                elif pd.notna(lead['_ym_uid']) and lead['_ym_uid'] != '':
-                                    contact_key = f"_ym_uid_{lead['_ym_uid']}"
-                                elif pd.notna(lead['Основной контакт']) and lead['Основной контакт'] != '':
-                                    contact_key = f"Contact_{lead['Основной контакт']}"
-                                
-                                # Проверяем, не обрабатывали ли мы уже этот контакт
-                                if contact_key is None or contact_key in processed_contacts:
-                                    continue
-                                
-                                # Получаем дату создания лида
-                                lead_date = lead['Дата создания']
-                                
-                                # 1. Ищем по ClientID
-                                if pd.notna(lead['ClientID']) and lead['ClientID'] != '':
-                                    # Отбираем только покупки со статусом "Успешно реализовано"
-                                    successful_purchases = purchases_df[
-                                        (purchases_df['ClientID'] == lead['ClientID']) & 
-                                        (purchases_df['Этап сделки'] == 'Успешно реализовано')
-                                    ]
-                                    
-                                    # Проверяем, что есть покупки с датой закрытия после даты создания лида
-                                    for _, purchase in successful_purchases.iterrows():
-                                        if pd.notna(purchase['Дата закрытия']):
-                                            purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
-                                            if pd.notna(purchase_date) and purchase_date > lead_date:
-                                                purchased_count += 1
-                                                found_purchase = True
-                                                processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
-                                                break  # Нашли покупку, прекращаем поиск
-                                
-                                # 2. Если не нашли по ClientID, ищем по Yclid
-                                if not found_purchase and pd.notna(lead['Yclid']) and lead['Yclid'] != '':
-                                    successful_purchases = purchases_df[
-                                        (purchases_df['Yclid'] == lead['Yclid']) & 
-                                        (purchases_df['Этап сделки'] == 'Успешно реализовано')
-                                    ]
-                                    
-                                    for _, purchase in successful_purchases.iterrows():
-                                        if pd.notna(purchase['Дата закрытия']):
-                                            purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
-                                            if pd.notna(purchase_date) and purchase_date > lead_date:
-                                                purchased_count += 1
-                                                found_purchase = True
-                                                processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
-                                                break
-                                
-                                # 3. Если не нашли по Yclid, ищем по _ym_uid
-                                if not found_purchase and pd.notna(lead['_ym_uid']) and lead['_ym_uid'] != '':
-                                    successful_purchases = purchases_df[
-                                        (purchases_df['_ym_uid'] == lead['_ym_uid']) & 
-                                        (purchases_df['Этап сделки'] == 'Успешно реализовано')
-                                    ]
-                                    
-                                    for _, purchase in successful_purchases.iterrows():
-                                        if pd.notna(purchase['Дата закрытия']):
-                                            purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
-                                            if pd.notna(purchase_date) and purchase_date > lead_date:
-                                                purchased_count += 1
-                                                found_purchase = True
-                                                processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
-                                                break
-                                
-                                # 4. Если не нашли по _ym_uid, ищем по основному контакту
-                                if not found_purchase and pd.notna(lead['Основной контакт']) and lead['Основной контакт'] != '':
-                                    successful_purchases = purchases_df[
-                                        (purchases_df['Основной контакт'] == lead['Основной контакт']) & 
-                                        (purchases_df['Этап сделки'] == 'Успешно реализовано')
-                                    ]
-                                    
-                                    for _, purchase in successful_purchases.iterrows():
-                                        if pd.notna(purchase['Дата закрытия']):
-                                            purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
-                                            if pd.notna(purchase_date) and purchase_date > lead_date:
-                                                purchased_count += 1
-                                                found_purchase = True
-                                                processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
-                                                break
+                            # Находим совпадения
+                            matching_accounts = purchase_set.intersection(activation_set)
+                            st.info(f"🔍 Найдено {len(matching_accounts)} совпадающих номеров счетов")
                             
-                            purchased_results.append({
-                                'Месяц': month,
-                                'Источник трафика': source,
-                                'Купили': purchased_count
-                            })
+                            if len(matching_accounts) > 0:
+                                # 5. Заполняем столбец "Новые активации ТСД" количеством совпадений по месяцам
+                                st.info("📝 Заполняем столбец 'Новые активации ТСД'...")
+                                
+                                # Создаем словарь для подсчета активаций по месяцам и источникам
+                                activations_by_month_source = {}
+                                
+                                # Проходим по всем лидам и ищем совпадения
+                                for _, lead in leads_analysis_clean.iterrows():
+                                    lead_month = lead['Месяц']
+                                    lead_source = lead['Источник трафика']
+                                    key = (lead_month, lead_source)
+                                    
+                                    if key not in activations_by_month_source:
+                                        activations_by_month_source[key] = 0
+                                    
+                                    # Ищем покупки по этому лиду
+                                    found_activation = False
+                                    
+                                    # Проверяем по ClientID
+                                    if pd.notna(lead['ClientID']) and lead['ClientID'] != '':
+                                        lead_purchases = purchases_df[purchases_df['ClientID'] == lead['ClientID']]
+                                        for _, purchase in lead_purchases.iterrows():
+                                            if pd.notna(purchase['Номер счета 1С']):
+                                                purchase_account = str(purchase['Номер счета 1С'])
+                                                if purchase_account in matching_accounts:
+                                                    activations_by_month_source[key] += 1
+                                                    found_activation = True
+                                                    break
+                                    
+                                    # Если не нашли по ClientID, проверяем по Yclid
+                                    if not found_activation and pd.notna(lead['Yclid']) and lead['Yclid'] != '':
+                                        lead_purchases = purchases_df[purchases_df['Yclid'] == lead['Yclid']]
+                                        for _, purchase in lead_purchases.iterrows():
+                                            if pd.notna(purchase['Номер счета 1С']):
+                                                purchase_account = str(purchase['Номер счета 1С'])
+                                                if purchase_account in matching_accounts:
+                                                    activations_by_month_source[key] += 1
+                                                    found_activation = True
+                                                    break
+                                    
+                                    # Если не нашли по Yclid, проверяем по _ym_uid
+                                    if not found_activation and pd.notna(lead['_ym_uid']) and lead['_ym_uid'] != '':
+                                        lead_purchases = purchases_df[purchases_df['_ym_uid'] == lead['_ym_uid']]
+                                        for _, purchase in lead_purchases.iterrows():
+                                            if pd.notna(purchase['Номер счета 1С']):
+                                                purchase_account = str(purchase['Номер счета 1С'])
+                                                if purchase_account in matching_accounts:
+                                                    activations_by_month_source[key] += 1
+                                                    found_activation = True
+                                                    break
+                                
+                                # Обновляем столбец "Новые активации ТСД" в analytics_df
+                                for (month, source), count in activations_by_month_source.items():
+                                    mask = (analytics_df['Месяц'] == month) & (analytics_df['Источник трафика'] == source)
+                                    analytics_df.loc[mask, 'Новые активации ТСД'] = count
+                                
+                                total_new_activations = sum(activations_by_month_source.values())
+                                st.success(f"✅ Столбец 'Новые активации ТСД' заполнен! Найдено {total_new_activations} новых активаций")
+                            else:
+                                st.info("ℹ️ Совпадающих номеров счетов не найдено")
+                                total_new_activations = 0
+                        else:
+                            st.warning("⚠️ Недостаточно данных для анализа новых активаций ТСД")
+                            total_new_activations = 0
                         
-                        # Создаем DataFrame с результатами покупок
-                        purchased_df = pd.DataFrame(purchased_results)
+                        # ===== КОНЕЦ НОВОЙ ЛОГИКИ =====
+                    
+                        # Создаем маску для предквалифицированных лидов
+                        prequalified_mask = leads_analysis_clean['Этап сделки'] == 'Лид предквалифицирован'
                         
-                        # Добавляем столбец "Купили" в аналитическую таблицу
+                        # Группируем предквалифицированные лиды по месяцам и источникам
+                        prequalified_by_month_source = leads_analysis_clean[prequalified_mask].groupby(['Месяц', 'Источник трафика'])['ID'].count().reset_index()
+                        prequalified_by_month_source = prequalified_by_month_source.rename(columns={'ID': 'Предквалифицированные лиды'})
+                        
+                        # Объединяем основную таблицу с предквалифицированными лидами
                         analytics_df = analytics_df.merge(
-                            purchased_df,
+                            prequalified_by_month_source,
                             on=['Месяц', 'Источник трафика'],
                             how='left'
                         )
-                        analytics_df['Купили'] = analytics_df['Купили'].fillna(0).astype(int)
                         
-                        # Добавляем столбец "Конверсия в покупку (%)" - отношение купивших к предквалифицированным
-                        analytics_df['Конверсия в покупку (%)'] = (
-                            (analytics_df['Купили'] / analytics_df['Предквалифицированные лиды'] * 100)
+                        # Заполняем NaN значения нулями
+                        analytics_df['Предквалифицированные лиды'] = analytics_df['Предквалифицированные лиды'].fillna(0).astype(int)
+                        
+                        # Убеждаемся, что столбец "Новые активации ТСД" существует
+                        if 'Новые активации ТСД' not in analytics_df.columns:
+                            analytics_df['Новые активации ТСД'] = 0
+                        
+                        # Добавляем столбец конверсии в предквалификацию
+                        analytics_df['Конверсия в предквалификацию (%)'] = (
+                            (analytics_df['Предквалифицированные лиды'] / analytics_df['Количество лидов'] * 100)
                             .round(2)
-                        ).fillna(0)
+                        )
                         
-                        total_purchased = purchased_df['Купили'].sum()
-                        st.success(f"✅ Анализ покупок завершен! Найдено {total_purchased} покупок среди предквалифицированных лидов")
+                        # Сортируем по месяцам
+                        analytics_df = analytics_df.sort_values(['Месяц', 'Источник трафика'])
+                        
+                        # Добавляем столбец "Купили" - кто из предквалифицированных лидов в итоге купил
+                        st.info("🔍 Анализируем покупки среди предквалифицированных лидов...")
+                        
+                        # Оптимизация: работаем только с предквалифицированными лидами для экономии памяти
+                        prequalified_leads = leads_analysis_clean[leads_analysis_clean['Этап сделки'] == 'Лид предквалифицирован'].copy()
+                        
+                        if len(prequalified_leads) > 0:
+                            st.info(f"📊 Найдено {len(prequalified_leads)} предквалифицированных лидов для анализа покупок")
+                            
+                            # Создаем DataFrame для хранения результатов по месяцам и источникам трафика
+                            purchased_results = []
+                            
+                            # Создаем множество для отслеживания уже учтенных контактов
+                            processed_contacts = set()
+                            
+                            # Анализируем каждый месяц и источник трафика отдельно для экономии памяти
+                            for (month, source) in prequalified_leads[['Месяц', 'Источник трафика']].drop_duplicates().values:
+                                month_source_leads = prequalified_leads[
+                                    (prequalified_leads['Месяц'] == month) & 
+                                    (prequalified_leads['Источник трафика'] == source)
+                                ]
+                                purchased_count = 0
+                                
+                                # Для каждого лида в месяце ищем покупки
+                                for _, lead in month_source_leads.iterrows():
+                                    found_purchase = False
+                                    
+                                    # Создаем уникальный идентификатор контакта для проверки дубликатов
+                                    contact_key = None
+                                    
+                                    # Определяем ключ контакта (приоритет: ClientID > Yclid > _ym_uid > Основной контакт)
+                                    if pd.notna(lead['ClientID']) and lead['ClientID'] != '':
+                                        contact_key = f"ClientID_{lead['ClientID']}"
+                                    elif pd.notna(lead['Yclid']) and lead['Yclid'] != '':
+                                        contact_key = f"Yclid_{lead['Yclid']}"
+                                    elif pd.notna(lead['_ym_uid']) and lead['_ym_uid'] != '':
+                                        contact_key = f"_ym_uid_{lead['_ym_uid']}"
+                                    elif pd.notna(lead['Основной контакт']) and lead['Основной контакт'] != '':
+                                        contact_key = f"Contact_{lead['Основной контакт']}"
+                                    
+                                    # Проверяем, не обрабатывали ли мы уже этот контакт
+                                    if contact_key is None or contact_key in processed_contacts:
+                                        continue
+                                    
+                                    # Получаем дату создания лида
+                                    lead_date = lead['Дата создания']
+                                    
+                                    # 1. Ищем по ClientID
+                                    if pd.notna(lead['ClientID']) and lead['ClientID'] != '':
+                                        # Отбираем только покупки со статусом "Успешно реализовано"
+                                        successful_purchases = purchases_df[
+                                            (purchases_df['ClientID'] == lead['ClientID']) & 
+                                            (purchases_df['Этап сделки'] == 'Успешно реализовано')
+                                        ]
+                                        
+                                        # Проверяем, что есть покупки с датой закрытия после даты создания лида
+                                        for _, purchase in successful_purchases.iterrows():
+                                            if pd.notna(purchase['Дата закрытия']):
+                                                purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
+                                                if pd.notna(purchase_date) and purchase_date > lead_date:
+                                                    purchased_count += 1
+                                                    found_purchase = True
+                                                    processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
+                                                    break  # Нашли покупку, прекращаем поиск
+                                    
+                                    # 2. Если не нашли по ClientID, ищем по Yclid
+                                    if not found_purchase and pd.notna(lead['Yclid']) and lead['Yclid'] != '':
+                                        successful_purchases = purchases_df[
+                                            (purchases_df['Yclid'] == lead['Yclid']) & 
+                                            (purchases_df['Этап сделки'] == 'Успешно реализовано')
+                                        ]
+                                        
+                                        for _, purchase in successful_purchases.iterrows():
+                                            if pd.notna(purchase['Дата закрытия']):
+                                                purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
+                                                if pd.notna(purchase_date) and purchase_date > lead_date:
+                                                    purchased_count += 1
+                                                    found_purchase = True
+                                                    processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
+                                                    break
+                                    
+                                    # 3. Если не нашли по Yclid, ищем по _ym_uid
+                                    if not found_purchase and pd.notna(lead['_ym_uid']) and lead['_ym_uid'] != '':
+                                        successful_purchases = purchases_df[
+                                            (purchases_df['_ym_uid'] == lead['_ym_uid']) & 
+                                            (purchases_df['Этап сделки'] == 'Успешно реализовано')
+                                        ]
+                                        
+                                        for _, purchase in successful_purchases.iterrows():
+                                            if pd.notna(purchase['Дата закрытия']):
+                                                purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
+                                                if pd.notna(purchase_date) and purchase_date > lead_date:
+                                                    purchased_count += 1
+                                                    found_purchase = True
+                                                    processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
+                                                    break
+                                    
+                                    # 4. Если не нашли по _ym_uid, ищем по основному контакту
+                                    if not found_purchase and pd.notna(lead['Основной контакт']) and lead['Основной контакт'] != '':
+                                        successful_purchases = purchases_df[
+                                            (purchases_df['Основной контакт'] == lead['Основной контакт']) & 
+                                            (purchases_df['Этап сделки'] == 'Успешно реализовано')
+                                        ]
+                                        
+                                        for _, purchase in successful_purchases.iterrows():
+                                            if pd.notna(purchase['Дата закрытия']):
+                                                purchase_date = pd.to_datetime(purchase['Дата закрытия'], errors='coerce')
+                                                if pd.notna(purchase_date) and purchase_date > lead_date:
+                                                    purchased_count += 1
+                                                    found_purchase = True
+                                                    processed_contacts.add(contact_key)  # Отмечаем контакт как обработанный
+                                                    break
+                                
+                                purchased_results.append({
+                                    'Месяц': month,
+                                    'Источник трафика': source,
+                                    'Купили': purchased_count
+                                })
+                            
+                            # Создаем DataFrame с результатами покупок
+                            purchased_df = pd.DataFrame(purchased_results)
+                            
+                            # Добавляем столбец "Купили" в аналитическую таблицу
+                            analytics_df = analytics_df.merge(
+                                purchased_df,
+                                on=['Месяц', 'Источник трафика'],
+                                how='left'
+                            )
+                            analytics_df['Купили'] = analytics_df['Купили'].fillna(0).astype(int)
+                            
+                            # Добавляем столбец "Конверсия в покупку (%)" - отношение купивших к предквалифицированным
+                            analytics_df['Конверсия в покупку (%)'] = (
+                                (analytics_df['Купили'] / analytics_df['Предквалифицированные лиды'] * 100)
+                                .round(2)
+                            ).fillna(0)
+                            
+                            total_purchased = purchased_df['Купили'].sum()
+                            st.success(f"✅ Анализ покупок завершен! Найдено {total_purchased} покупок среди предквалифицированных лидов")
+                            
+                        else:
+                            st.warning("⚠️ Предквалифицированные лиды не найдены")
+                            # Добавляем пустые столбцы
+                            analytics_df['Купили'] = 0
+                            analytics_df['Конверсия в покупку (%)'] = 0.0
+                        
+                        # Добавляем строку "Итого" в конец таблицы
+                        # Создаем итоговые строки по каждому источнику трафика
+                        total_rows = []
+                        
+
+                        
+                        # Создаем новую таблицу с правильным порядком строк
+                        ordered_rows = []
+                        
+                        # Проходим по каждому месяцу
+                        for month in sorted(analytics_df['Месяц'].unique()):
+                            # Добавляем все источники трафика для этого месяца
+                            month_data = analytics_df[analytics_df['Месяц'] == month].sort_values('Источник трафика')
+                            for _, row in month_data.iterrows():
+                                ordered_rows.append(row.to_dict())
+                            
+                            # Добавляем итог по месяцу сразу после всех источников
+                            month_summary = {
+                                'Месяц': month,
+                                'Источник трафика': 'ИТОГО ПО МЕСЯЦУ',
+                                'Количество лидов': month_data['Количество лидов'].sum(),
+                                'Предквалифицированные лиды': month_data['Предквалифицированные лиды'].sum(),
+                                'Купили': month_data['Купили'].sum(),
+                                'Конверсия в предквалификацию (%)': round(
+                                    (month_data['Предквалифицированные лиды'].sum() / month_data['Количество лидов'].sum() * 100), 2
+                                ) if month_data['Количество лидов'].sum() > 0 else 0,
+                                'Конверсия в покупку (%)': round(
+                                    (month_data['Купили'].sum() / month_data['Предквалифицированные лиды'].sum() * 100), 2
+                                ) if month_data['Предквалифицированные лиды'].sum() > 0 else 0,
+                                'Новые активации ТСД': month_data['Новые активации ТСД'].sum() if 'Новые активации ТСД' in month_data.columns else 0
+                            }
+                            ordered_rows.append(month_summary)
+                        
+                        # Добавляем итоги по каждому источнику трафика
+                        for source in sorted(analytics_df['Источник трафика'].unique()):
+                            source_data = analytics_df[analytics_df['Источник трафика'] == source]
+                            source_summary = {
+                                'Месяц': 'Итого',
+                                'Источник трафика': source,
+                                'Количество лидов': source_data['Количество лидов'].sum(),
+                                'Предквалифицированные лиды': source_data['Предквалифицированные лиды'].sum(),
+                                'Купили': source_data['Купили'].sum(),
+                                'Конверсия в предквалификацию (%)': round(
+                                    (source_data['Предквалифицированные лиды'].sum() / source_data['Количество лидов'].sum() * 100), 2
+                                ) if source_data['Количество лидов'].sum() > 0 else 0,
+                                'Конверсия в покупку (%)': round(
+                                    (source_data['Купили'].sum() / source_data['Предквалифицированные лиды'].sum() * 100), 2
+                                ) if source_data['Купили'].sum() > 0 else 0,
+                                'Новые активации ТСД': source_data['Новые активации ТСД'].sum() if 'Новые активации ТСД' in source_data.columns else 0
+                            }
+                            ordered_rows.append(source_summary)
+                        
+                        # Добавляем общую итоговую строку
+                        overall_summary = {
+                            'Месяц': 'Итого',
+                            'Источник трафика': 'ВСЕ ИСТОЧНИКИ',
+                            'Количество лидов': analytics_df['Количество лидов'].sum(),
+                            'Предквалифицированные лиды': analytics_df['Предквалифицированные лиды'].sum(),
+                            'Купили': analytics_df['Купили'].sum(),
+                            'Конверсия в покупку (%)': round(
+                                (analytics_df['Купили'].sum() / analytics_df['Предквалифицированные лиды'].sum() * 100), 2
+                            ) if analytics_df['Предквалифицированные лиды'].sum() > 0 else 0,
+                            'Новые активации ТСД': analytics_df['Новые активации ТСД'].sum() if 'Новые активации ТСД' in analytics_df.columns else 0
+                        }
+                        ordered_rows.append(overall_summary)
+                        
+                        # Создаем итоговую таблицу с правильным порядком
+                        analytics_df_with_total = pd.DataFrame(ordered_rows)
+                        
+
+                        
+                        # Рассчитываем общие метрики для панели
+                        total_leads = analytics_df['Количество лидов'].sum()
+                        total_prequalified = analytics_df['Предквалифицированные лиды'].sum()
+                        total_purchased = analytics_df['Купили'].sum()
+                        
+                        # БЕЗОПАСНО получаем сумму новых активаций
+                        total_new_activations = analytics_df['Новые активации ТСД'].sum()
+                        
+                        # Средние конверсии
+                        avg_lead_to_sql = round((total_prequalified / total_leads * 100), 2) if total_leads > 0 else 0
+                        avg_sql_to_sale = round((total_purchased / total_prequalified * 100), 2) if total_prequalified > 0 else 0
+                        
+                        # Отображаем панель с метриками
+                        st.subheader("📊 КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ")
+                        
+                        # Создаем 6 колонок для метрик
+                        col1, col2, col3, col4, col5, col6 = st.columns(6)
+                        
+                        with col1:
+                            st.metric(
+                                label="Лиды",
+                                value=f"{total_leads:,}".replace(",", " "),
+                                help="Общее количество лидов"
+                            )
+                        
+                        with col2:
+                            st.metric(
+                                label="SQL",
+                                value=f"{total_prequalified:,}".replace(",", " "),
+                                help="Количество предквалифицированных лидов"
+                            )
+                        
+                        with col3:
+                            st.metric(
+                                label="Купили",
+                                value=f"{total_purchased:,}".replace(",", " "),
+                                help="Количество успешных продаж"
+                            )
+                        
+                        with col4:
+                            # БЕЗОПАСНО отображаем метрику новых активаций
+                            try:
+                                st.metric(
+                                    label="Новые активации ТСД",
+                                    value=f"{total_new_activations:,}".replace(",", " "),
+                                    help="Количество новых активаций ТСД"
+                                )
+                            except:
+                                st.metric(
+                                    label="Новые активации ТСД",
+                                    value="0",
+                                    help="Количество новых активаций ТСД"
+                                )
+                        
+                        with col5:
+                            st.metric(
+                                label="Конверсия Лид → SQL",
+                                value=f"{avg_lead_to_sql}%",
+                                help="Средняя конверсия лидов в предквалифицированные"
+                            )
+                        
+                        with col6:
+                            st.metric(
+                                label="Конверсия SQL → Продажа",
+                                value=f"{avg_sql_to_sale}%",
+                                help="Средняя конверсия предквалифицированных в продажи"
+                            )
+                        
+                        # Добавляем разделитель
+                        st.markdown("---")
+                        
+                        # Конвертируем Period в строку для отображения
+                        analytics_df_with_total['Месяц'] = analytics_df_with_total['Месяц'].astype(str)
+                        
+                        # Создаем визуальный эффект объединенных ячеек для месяцев
+                        # Месяц отображается только в первой строке каждого месяца
+                        month_display = analytics_df_with_total['Месяц'].copy()
+                        current_month = None
+                        
+                        for idx in range(len(analytics_df_with_total)):
+                            month = analytics_df_with_total.iloc[idx]['Месяц']
+                            source = analytics_df_with_total.iloc[idx]['Источник трафика']
+                            
+                            # Для строк "ИТОГО ПО МЕСЯЦУ" оставляем месяц как есть
+                            if source == 'ИТОГО ПО МЕСЯЦУ':
+                                month_display.iloc[idx] = month
+                                current_month = month
+                            elif month != current_month:
+                                current_month = month
+                                # Оставляем месяц как есть для первой строки
+                            else:
+                                # Для остальных строк того же месяца делаем пустую строку
+                                month_display.iloc[idx] = ''
+                        
+                        # Создаем копию для отображения с модифицированным столбцом месяца
+                        display_df = analytics_df_with_total.copy()
+                        display_df['Месяц'] = month_display
+                        
+                        st.success(f"✅ Аналитическая таблица создана! Размер: {analytics_df.shape[0]} строк, {analytics_df.shape[1]} столбцов")
+                        st.info(f"📊 Анализ основан на всех {len(leads_analysis_clean)} лидах из leads2025")
+                        
+                        # Показываем аналитическую таблицу с итогами
+                        st.subheader("📈 Аналитика лидов по месяцам:")
+                        
+                        # Проверяем наличие столбца "Новые активации ТСД"
+                        if 'Новые активации ТСД' in display_df.columns:
+                            st.success("✅ Столбец 'Новые активации ТСД' добавлен в таблицу")
+                        else:
+                            st.warning("⚠️ Столбец 'Новые активации ТСД' отсутствует в таблице")
+                        
+                        # Показываем одну таблицу с сегментацией по дате и источнику трафика
+                        st.dataframe(display_df, use_container_width=True)
+                        
+                        # График по источникам трафика (теперь встроен в основную таблицу)
+                        st.subheader("📈 График лидов по источникам трафика:")
+                        
+                        # Создаем график на основе основной таблицы
+                        fig_traffic = go.Figure()
+                        
+                        # Добавляем линии для каждого источника трафика
+                        for source in analytics_df['Источник трафика'].unique():
+                            source_data = analytics_df[analytics_df['Источник трафика'] == source]
+                            source_data['Месяц'] = source_data['Месяц'].astype(str)
+                            
+                            fig_traffic.add_trace(
+                                go.Scatter(
+                                    x=source_data['Месяц'],
+                                    y=source_data['Количество лидов'],
+                                    mode='lines+markers',
+                                    name=source,
+                                    line=dict(width=3)
+                                )
+                            )
+                        
+                        fig_traffic.update_layout(
+                            height=500,
+                            title_text="Динамика лидов по источникам трафика",
+                            xaxis_title="Месяц",
+                            yaxis_title="Количество лидов",
+                            showlegend=True
+                        )
+                        
+                        st.plotly_chart(fig_traffic, use_container_width=True)
+                        
+                        # Создаем график
+                        st.subheader("📊 График динамики лидов по месяцам:")
+                        
+                        # Конвертируем Period в строку для отображения
+                        analytics_df_display = analytics_df.reset_index()
+                        analytics_df_display['Месяц'] = analytics_df_display['Месяц'].astype(str)
+                        
+                        # Создаем график с двумя линиями
+                        import plotly.express as px
+                        import plotly.graph_objects as go
+                        from plotly.subplots import make_subplots
+                        
+                        fig = make_subplots(
+                            rows=2, cols=1,
+                            subplot_titles=('Количество лидов по месяцам', 'Конверсия в предквалификацию (%)'),
+                            vertical_spacing=0.1
+                        )
+                        
+                        # Первый график - количество лидов
+                        fig.add_trace(
+                            go.Scatter(
+                                x=analytics_df_display['Месяц'],
+                                y=analytics_df_display['Количество лидов'],
+                                mode='lines+markers',
+                                name='Количество лидов',
+                                line=dict(color='blue', width=3)
+                            ),
+                            row=1, col=1
+                        )
+                        
+                        fig.add_trace(
+                            go.Scatter(
+                                x=analytics_df_display['Месяц'],
+                                y=analytics_df_display['Предквалифицированные лиды'],
+                                mode='lines+markers',
+                                name='Предквалифицированные лиды',
+                                line=dict(color='green', width=3)
+                            ),
+                            row=1, col=1
+                        )
+                        
+                        # Второй график - конверсия
+                        fig.add_trace(
+                            go.Scatter(
+                                x=analytics_df_display['Месяц'],
+                                y=analytics_df_display['Конверсия в предквалификацию (%)'],
+                                mode='lines+markers',
+                                name='Конверсия (%)',
+                                line=dict(color='red', width=3)
+                            ),
+                            row=2, col=1
+                        )
+                        
+                        fig.update_layout(
+                            height=600,
+                            title_text="Динамика лидов и конверсии по месяцам",
+                            showlegend=True
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
                         
                     else:
-                        st.warning("⚠️ Предквалифицированные лиды не найдены")
-                        # Добавляем пустые столбцы
-                        analytics_df['Купили'] = 0
-                        analytics_df['Конверсия в покупку (%)'] = 0.0
-                    
-                    # Добавляем строку "Итого" в конец таблицы
-                    # Создаем итоговые строки по каждому источнику трафика
-                    total_rows = []
-                    
-                    # Создаем новую таблицу с правильным порядком строк
-                    ordered_rows = []
-                    
-                    # Проходим по каждому месяцу
-                    for month in sorted(analytics_df['Месяц'].unique()):
-                        # Добавляем все источники трафика для этого месяца
-                        month_data = analytics_df[analytics_df['Месяц'] == month].sort_values('Источник трафика')
-                        for _, row in month_data.iterrows():
-                            ordered_rows.append(row.to_dict())
+                        st.error("❌ Столбец 'Этап сделки' не найден в данных")
                         
-                        # Добавляем итог по месяцу сразу после всех источников
-                        month_summary = {
-                            'Месяц': month,
-                            'Источник трафика': 'ИТОГО ПО МЕСЯЦУ',
-                            'Количество лидов': month_data['Количество лидов'].sum(),
-                            'Предквалифицированные лиды': month_data['Предквалифицированные лиды'].sum(),
-                            'Купили': month_data['Купили'].sum(),
-                            'Конверсия в предквалификацию (%)': round(
-                                (month_data['Предквалифицированные лиды'].sum() / month_data['Количество лидов'].sum() * 100), 2
-                            ) if month_data['Количество лидов'].sum() > 0 else 0,
-                            'Конверсия в покупку (%)': round(
-                                (month_data['Купили'].sum() / month_data['Предквалифицированные лиды'].sum() * 100), 2
-                            ) if month_data['Предквалифицированные лиды'].sum() > 0 else 0
-                        }
-                        ordered_rows.append(month_summary)
-                    
-                    # Добавляем итоги по каждому источнику трафика
-                    for source in sorted(analytics_df['Источник трафика'].unique()):
-                        source_data = analytics_df[analytics_df['Источник трафика'] == source]
-                        source_summary = {
-                            'Месяц': 'Итого',
-                            'Источник трафика': source,
-                            'Количество лидов': source_data['Количество лидов'].sum(),
-                            'Предквалифицированные лиды': source_data['Предквалифицированные лиды'].sum(),
-                            'Купили': source_data['Купили'].sum(),
-                            'Конверсия в предквалификацию (%)': round(
-                                (source_data['Предквалифицированные лиды'].sum() / source_data['Количество лидов'].sum() * 100), 2
-                            ) if source_data['Количество лидов'].sum() > 0 else 0,
-                            'Конверсия в покупку (%)': round(
-                                (source_data['Купили'].sum() / source_data['Предквалифицированные лиды'].sum() * 100), 2
-                            ) if source_data['Купили'].sum() > 0 else 0
-                        }
-                        ordered_rows.append(source_summary)
-                    
-                    # Добавляем общую итоговую строку
-                    overall_summary = {
-                        'Месяц': 'Итого',
-                        'Источник трафика': 'ВСЕ ИСТОЧНИКИ',
-                        'Количество лидов': analytics_df['Количество лидов'].sum(),
-                        'Предквалифицированные лиды': analytics_df['Предквалифицированные лиды'].sum(),
-                        'Купили': analytics_df['Купили'].sum(),
-                        'Конверсия в предквалификацию (%)': round(
-                            (analytics_df['Предквалифицированные лиды'].sum() / analytics_df['Количество лидов'].sum() * 100), 2
-                        ) if analytics_df['Количество лидов'].sum() > 0 else 0,
-                        'Конверсия в покупку (%)': round(
-                            (analytics_df['Купили'].sum() / analytics_df['Предквалифицированные лиды'].sum() * 100), 2
-                        ) if analytics_df['Предквалифицированные лиды'].sum() > 0 else 0
-                    }
-                    ordered_rows.append(overall_summary)
-                    
-                    # Создаем итоговую таблицу с правильным порядком
-                    analytics_df_with_total = pd.DataFrame(ordered_rows)
-                    
-                    # Рассчитываем общие метрики для панели
-                    total_leads = analytics_df['Количество лидов'].sum()
-                    total_prequalified = analytics_df['Предквалифицированные лиды'].sum()
-                    total_purchased = analytics_df['Купили'].sum()
-                    
-                    # Средние конверсии
-                    avg_lead_to_sql = round((total_prequalified / total_leads * 100), 2) if total_leads > 0 else 0
-                    avg_sql_to_sale = round((total_purchased / total_prequalified * 100), 2) if total_prequalified > 0 else 0
-                    
-                    # Отображаем панель с метриками
-                    st.subheader("📊 КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ")
-                    
-                    # Создаем 5 колонок для метрик
-                    col1, col2, col3, col4, col5 = st.columns(5)
-                    
-                    with col1:
-                        st.metric(
-                            label="Лиды",
-                            value=f"{total_leads:,}".replace(",", " "),
-                            help="Общее количество лидов"
-                        )
-                    
-                    with col2:
-                        st.metric(
-                            label="SQL",
-                            value=f"{total_prequalified:,}".replace(",", " "),
-                            help="Количество предквалифицированных лидов"
-                        )
-                    
-                    with col3:
-                        st.metric(
-                            label="Купили",
-                            value=f"{total_purchased:,}".replace(",", " "),
-                            help="Количество успешных продаж"
-                        )
-                    
-                    with col4:
-                        st.metric(
-                            label="Конверсия Лид → SQL",
-                            value=f"{avg_lead_to_sql}%",
-                            help="Средняя конверсия лидов в предквалифицированные"
-                        )
-                    
-                    with col5:
-                        st.metric(
-                            label="Конверсия SQL → Продажа",
-                            value=f"{avg_sql_to_sale}%",
-                            help="Средняя конверсия предквалифицированных в продажи"
-                        )
-                    
-                    # Добавляем разделитель
-                    st.markdown("---")
-                    
-                    # Конвертируем Period в строку для отображения
-                    analytics_df_with_total['Месяц'] = analytics_df_with_total['Месяц'].astype(str)
-                    
-                    # Создаем визуальный эффект объединенных ячеек для месяцев
-                    # Месяц отображается только в первой строке каждого месяца
-                    month_display = analytics_df_with_total['Месяц'].copy()
-                    current_month = None
-                    
-                    for idx in range(len(analytics_df_with_total)):
-                        month = analytics_df_with_total.iloc[idx]['Месяц']
-                        source = analytics_df_with_total.iloc[idx]['Источник трафика']
-                        
-                        # Для строк "ИТОГО ПО МЕСЯЦУ" оставляем месяц как есть
-                        if source == 'ИТОГО ПО МЕСЯЦУ':
-                            month_display.iloc[idx] = month
-                            current_month = month
-                        elif month != current_month:
-                            current_month = month
-                            # Оставляем месяц как есть для первой строки
-                        else:
-                            # Для остальных строк того же месяца делаем пустую строку
-                            month_display.iloc[idx] = ''
-                    
-                    # Создаем копию для отображения с модифицированным столбцом месяца
-                    display_df = analytics_df_with_total.copy()
-                    display_df['Месяц'] = month_display
-                    
-                    st.success(f"✅ Аналитическая таблица создана! Размер: {analytics_df.shape[0]} строк, {analytics_df.shape[1]} столбцов")
-                    st.info(f"📊 Анализ основан на всех {len(leads_analysis_clean)} лидах из leads2025")
-                    
-                    # Показываем аналитическую таблицу с итогами
-                    st.subheader("📈 Аналитика лидов по месяцам:")
-                    
-                    # Показываем одну таблицу с сегментацией по дате и источнику трафика
-                    st.dataframe(display_df, use_container_width=True)
-                    
-                    # График по источникам трафика (теперь встроен в основную таблицу)
-                    st.subheader("📈 График лидов по источникам трафика:")
-                    
-                    # Создаем график на основе основной таблицы
-                    fig_traffic = go.Figure()
-                    
-                    # Добавляем линии для каждого источника трафика
-                    for source in analytics_df['Источник трафика'].unique():
-                        source_data = analytics_df[analytics_df['Источник трафика'] == source]
-                        source_data['Месяц'] = source_data['Месяц'].astype(str)
-                        
-                        fig_traffic.add_trace(
-                            go.Scatter(
-                                x=source_data['Месяц'],
-                                y=source_data['Количество лидов'],
-                                mode='lines+markers',
-                                name=source,
-                                line=dict(width=3)
-                            )
-                        )
-                    
-                    fig_traffic.update_layout(
-                        height=500,
-                        title_text="Динамика лидов по источникам трафика",
-                        xaxis_title="Месяц",
-                        yaxis_title="Количество лидов",
-                        showlegend=True
-                    )
-                    
-                    st.plotly_chart(fig_traffic, use_container_width=True)
-                    
-                    # Создаем график
-                    st.subheader("📊 График динамики лидов по месяцам:")
-                    
-                    # Конвертируем Period в строку для отображения
-                    analytics_df_display = analytics_df.reset_index()
-                    analytics_df_display['Месяц'] = analytics_df_display['Месяц'].astype(str)
-                    
-                    # Создаем график с двумя линиями
-                    import plotly.express as px
-                    import plotly.graph_objects as go
-                    from plotly.subplots import make_subplots
-                    
-                    fig = make_subplots(
-                        rows=2, cols=1,
-                        subplot_titles=('Количество лидов по месяцам', 'Конверсия в предквалификацию (%)'),
-                        vertical_spacing=0.1
-                    )
-                    
-                    # Первый график - количество лидов
-                    fig.add_trace(
-                        go.Scatter(
-                            x=analytics_df_display['Месяц'],
-                            y=analytics_df_display['Количество лидов'],
-                            mode='lines+markers',
-                            name='Количество лидов',
-                            line=dict(color='blue', width=3)
-                        ),
-                        row=1, col=1
-                    )
-                    
-                    fig.add_trace(
-                        go.Scatter(
-                            x=analytics_df_display['Месяц'],
-                            y=analytics_df_display['Предквалифицированные лиды'],
-                            mode='lines+markers',
-                            name='Предквалифицированные лиды',
-                            line=dict(color='green', width=3)
-                        ),
-                        row=1, col=1
-                    )
-                    
-                    # Второй график - конверсия
-                    fig.add_trace(
-                        go.Scatter(
-                            x=analytics_df_display['Месяц'],
-                            y=analytics_df_display['Конверсия в предквалификацию (%)'],
-                            mode='lines+markers',
-                            name='Конверсия (%)',
-                            line=dict(color='red', width=3)
-                        ),
-                        row=2, col=1
-                    )
-                    
-                    fig.update_layout(
-                        height=600,
-                        title_text="Динамика лидов и конверсии по месяцам",
-                        showlegend=True
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    
                 else:
-                    st.error("❌ Столбец 'Этап сделки' не найден в данных")
+                    st.warning("⚠️ Нет данных с корректными датами для анализа")
                     
             else:
-                st.warning("⚠️ Нет данных с корректными датами для анализа")
+                st.error("❌ Столбец 'Дата создания' не найден в данных")
                 
-        else:
-            st.error("❌ Столбец 'Дата создания' не найден в данных")
+        except Exception as e:
+            st.error(f"❌ Ошибка при создании аналитической таблицы: {str(e)}")
+            analytics_df = None
             
-    except Exception as e:
-        st.error(f"❌ Ошибка при создании аналитической таблицы: {str(e)}")
-        analytics_df = None
-        
-else:
-    st.warning("⚠️ Некоторые файлы не удалось загрузить. Проверьте наличие файлов в директории.")
-# версия 15.08.
+    else:
+        st.warning("⚠️ Некоторые файлы не удалось загрузить. Проверьте наличие файлов в директории.")
+
+if __name__ == "__main__":
+    main()
