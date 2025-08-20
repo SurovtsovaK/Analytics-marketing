@@ -4,6 +4,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 def main():
+    # Объявляем глобальные переменные
+    global total_payments
+    total_payments = 0.0
+    
     # Чтение CSV файлов с обработкой ошибок
     try:
         # Читаем файл с лидами
@@ -693,6 +697,9 @@ def main():
                         # БЕЗОПАСНО получаем сумму новых активаций
                         total_new_activations = analytics_df['Новые активации ТСД'].sum()
                         
+                        # Инициализируем переменную для общей суммы оплат
+                        total_payments = 0.0
+                        
                         # Средние конверсии
                         avg_lead_to_sql = round((total_prequalified / total_leads * 100), 2) if total_leads > 0 else 0
                         avg_sql_to_sale = round((total_purchased / total_prequalified * 100), 2) if total_prequalified > 0 else 0
@@ -700,8 +707,8 @@ def main():
                         # Отображаем панель с метриками
                         st.subheader("📊 КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ")
                         
-                        # Создаем 6 колонок для метрик
-                        col1, col2, col3, col4, col5, col6 = st.columns(6)
+                        # Создаем 7 колонок для метрик
+                        col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
                         
                         with col1:
                             st.metric(
@@ -753,6 +760,24 @@ def main():
                                 help="Средняя конверсия предквалифицированных в продажи"
                             )
                         
+                        with col7:
+                            # БЕЗОПАСНО отображаем метрику общей суммы оплат
+                            try:
+                                st.metric(
+                                    label="Общая сумма оплат",
+                                    value=f"{total_payments:,.0f} ₽",
+                                    help="Общая сумма оплат по всем источникам"
+                                )
+                                # Отладочная информация
+                                st.caption(f"Debug: {total_payments}")
+                            except Exception as e:
+                                st.metric(
+                                    label="Общая сумма оплат",
+                                    value="0 ₽",
+                                    help="Общая сумма оплат по всем источникам"
+                                )
+                                st.caption(f"Ошибка: {str(e)}")
+                        
                         # Добавляем разделитель
                         st.markdown("---")
                         
@@ -783,12 +808,15 @@ def main():
                         display_df = analytics_df_with_total.copy()
                         display_df['Месяц'] = month_display
                         
-                        # Переупорядочиваем столбцы - "Новые активации ТСД" предпоследний, "Конверсия в активации (%)" последний
+                        # Добавляем столбец "Оплаты" в основную таблицу (пока пустой)
+                        display_df['Оплаты'] = 0.0
+                        
+                        # Переупорядочиваем столбцы - "Новые активации ТСД" предпоследний, "Конверсия в активации (%)" предпоследний, "Оплаты" последний
                         if 'Новые активации ТСД' in display_df.columns and 'Конверсия в активации (%)' in display_df.columns:
-                            # Получаем все столбцы кроме "Новые активации ТСД" и "Конверсия в активации (%)"
-                            other_columns = [col for col in display_df.columns if col not in ['Новые активации ТСД', 'Конверсия в активации (%)']]
-                            # Создаем новый порядок столбцов: другие столбцы + "Новые активации ТСД" + "Конверсия в активации (%)"
-                            new_column_order = other_columns + ['Новые активации ТСД', 'Конверсия в активации (%)']
+                            # Получаем все столбцы кроме "Новые активации ТСД", "Конверсия в активации (%)" и "Оплаты"
+                            other_columns = [col for col in display_df.columns if col not in ['Новые активации ТСД', 'Конверсия в активации (%)', 'Оплаты']]
+                            # Создаем новый порядок столбцов: другие столбцы + "Новые активации ТСД" + "Конверсия в активации (%)" + "Оплаты"
+                            new_column_order = other_columns + ['Новые активации ТСД', 'Конверсия в активации (%)', 'Оплаты']
                             # Переупорядочиваем DataFrame
                             display_df = display_df[new_column_order]
                         
@@ -804,8 +832,247 @@ def main():
                         else:
                             st.warning("⚠️ Столбец 'Новые активации ТСД' отсутствует в таблице")
                         
+                        # Проверяем наличие столбца "Оплаты"
+                        if 'Оплаты' in display_df.columns:
+                            st.success("✅ Столбец 'Оплаты' добавлен в таблицу")
+                        else:
+                            st.warning("⚠️ Столбец 'Оплаты' отсутствует в таблице")
+                        
                         # Показываем одну таблицу с сегментацией по дате и источнику трафика
                         st.dataframe(display_df, use_container_width=True)
+                        
+                        # ===== НОВАЯ ТАБЛИЦА: ОПЛАТЫ ПО ИСТОЧНИКАМ =====
+                        st.subheader("💰 ОПЛАТЫ ПО ИСТОЧНИКАМ")
+                        
+                        # Создаем копию основной таблицы для таблицы оплат
+                        payments_df = display_df.copy()
+                        
+                        # Столбец "Оплаты" уже добавлен в display_df, поэтому просто копируем
+                        
+                        # Загружаем данные о продажах 1С
+                        try:
+                            sales_1c_df = pd.read_csv('продажи 1С 25.csv', sep=';')
+                            st.success(f"✅ Файл продажи 1С 25.csv загружен! Размер: {sales_1c_df.shape[0]} строк, {sales_1c_df.shape[1]} столбцов")
+                            
+                            # Очищаем и подготавливаем данные о продажах
+                            # Убираем строки с пустыми суммами
+                            sales_1c_clean = sales_1c_df[sales_1c_df['Сумма'].notna() & (sales_1c_df['Сумма'] != '')].copy()
+                            
+                            # Конвертируем суммы в числовой формат (убираем пробелы и заменяем запятую на точку)
+                            sales_1c_clean['Сумма_число'] = sales_1c_clean['Сумма'].astype(str).str.replace(' ', '').str.replace(',', '.').astype(float)
+                            
+                            # Создаем словарь для быстрого поиска: номер счета -> сумма
+                            sales_dict = dict(zip(sales_1c_clean['Номер счета'], sales_1c_clean['Сумма_число']))
+                            
+                            st.info(f"📊 Найдено {len(sales_dict)} уникальных номеров счетов с суммами")
+                            
+                            # Заполняем столбец "Оплаты" на основе совпадений номеров счетов
+                            # Используем глобальную переменную total_payments
+                            total_payments = 0
+                            payments_by_month_source = {}
+                            
+                            # ПРАВИЛЬНАЯ ЛОГИКА: ищем оплаты только по тем лидам, которые купили
+                            processed_leads = 0
+                            found_payments_count = 0
+                            
+                            # Инициализируем словарь для всех источников трафика
+                            all_sources = leads_analysis_clean['Источник трафика'].unique()
+                            all_months = leads_analysis_clean['Месяц'].unique()
+                            
+                            st.info(f"🔍 Найдено источников трафика: {len(all_sources)}")
+                            st.info(f"🔍 Найдено месяцев: {len(all_months)}")
+                            
+                            # Проходим по всем лидам и ищем оплаты для тех, кто купил
+                            for _, lead in leads_analysis_clean.iterrows():
+                                lead_month = lead['Месяц']
+                                lead_source = lead['Источник трафика']
+                                
+                                # Ищем покупки по этому лиду
+                                found_payment = False
+                                payment_amount = 0.0
+                                
+                                # Проверяем по ClientID
+                                if pd.notna(lead['ClientID']) and lead['ClientID'] != '':
+                                    lead_purchases = purchases_df[purchases_df['ClientID'] == lead['ClientID']]
+                                    for _, purchase in lead_purchases.iterrows():
+                                        if pd.notna(purchase['Номер счета 1С']) and purchase['Номер счета 1С'] != '':
+                                            purchase_account = str(purchase['Номер счета 1С'])
+                                            if purchase_account in sales_dict:
+                                                payment_amount += sales_dict[purchase_account]
+                                                found_payment = True
+                                                found_payments_count += 1
+                                                break
+                                
+                                # Если не нашли по ClientID, проверяем по Yclid
+                                if not found_payment and pd.notna(lead['Yclid']) and lead['Yclid'] != '':
+                                    lead_purchases = purchases_df[purchases_df['Yclid'] == lead['Yclid']]
+                                    for _, purchase in lead_purchases.iterrows():
+                                        if pd.notna(purchase['Номер счета 1С']) and purchase['Номер счета 1С'] != '':
+                                            purchase_account = str(purchase['Номер счета 1С'])
+                                            if purchase_account in sales_dict:
+                                                payment_amount += sales_dict[purchase_account]
+                                                found_payment = True
+                                                found_payments_count += 1
+                                                break
+                                
+                                # Если не нашли по Yclid, проверяем по _ym_uid
+                                if not found_payment and pd.notna(lead['_ym_uid']) and lead['_ym_uid'] != '':
+                                    lead_purchases = purchases_df[purchases_df['_ym_uid'] == lead['_ym_uid']]
+                                    for _, purchase in lead_purchases.iterrows():
+                                        if pd.notna(purchase['Номер счета 1С']) and purchase['Номер счета 1С'] != '':
+                                            purchase_account = str(purchase['Номер счета 1С'])
+                                            if purchase_account in sales_dict:
+                                                payment_amount += sales_dict[purchase_account]
+                                                found_payment = True
+                                                found_payments_count += 1
+                                                break
+                                
+                                # Если нашли оплату, добавляем в соответствующий сегмент
+                                if found_payment and payment_amount > 0:
+                                    key = (lead_month, lead_source)
+                                    if key not in payments_by_month_source:
+                                        payments_by_month_source[key] = 0.0
+                                    payments_by_month_source[key] += payment_amount
+                                    total_payments += payment_amount
+                                    processed_leads += 1
+                                    
+                                    st.info(f"💰 Найдена оплата для лида {lead['ID']}: {lead_month} | {lead_source} -> {payment_amount:,.2f} руб.")
+                            
+                            # Обновляем столбец "Оплаты" в payments_df и в основной таблице display_df
+                            st.info(f"🔍 Распределяем оплаты по сегментации...")
+                            st.info(f"📊 Найдено {len(payments_by_month_source)} сегментов с оплатами")
+                            
+                            # Показываем структуру таблиц для отладки
+                            st.info("🔍 Структура таблиц:")
+                            st.info(f"📊 payments_df месяцы: {payments_df['Месяц'].unique()}")
+                            st.info(f"📊 display_df месяцы: {display_df['Месяц'].unique()}")
+                            st.info(f"📊 payments_df источники: {payments_df['Источник трафика'].unique()}")
+                            st.info(f"📊 display_df источники: {display_df['Источник трафика'].unique()}")
+                            
+                            for (month, source), amount in payments_by_month_source.items():
+                                st.info(f"💰 {month} | {source}: {amount:,.2f} руб.")
+                                
+                                # Преобразуем месяц в строку для сопоставления
+                                month_str = str(month)
+                                
+                                # Обновляем таблицу payments_df с более надежным поиском
+                                # Очищаем строки от лишних пробелов и приводим к нижнему регистру для сравнения
+                                payments_df_month_clean = payments_df['Месяц'].astype(str).str.strip().str.lower()
+                                payments_df_source_clean = payments_df['Источник трафика'].astype(str).str.strip().str.lower()
+                                
+                                month_str_clean = month_str.strip().lower()
+                                source_clean = source.strip().lower()
+                                
+                                # Ищем точное совпадение
+                                mask = (payments_df_month_clean == month_str_clean) & (payments_df_source_clean == source_clean)
+                                
+                                if mask.any():
+                                    payments_df.loc[mask, 'Оплаты'] = amount
+                                    st.success(f"✅ Обновлена строка в payments_df: {month_str} | {source}")
+                                else:
+                                    # Пробуем найти по частичному совпадению месяца
+                                    month_partial = month_str.split('-')[1] if '-' in month_str else month_str
+                                    month_partial_clean = month_partial.strip().lower()
+                                    
+                                    partial_mask = (payments_df_month_clean.str.contains(month_partial_clean, na=False)) & (payments_df_source_clean == source_clean)
+                                    if partial_mask.any():
+                                        payments_df.loc[partial_mask, 'Оплаты'] = amount
+                                        st.success(f"✅ Обновлена строка в payments_df (частичное совпадение): {month_str} | {source}")
+                                    else:
+                                        # Последняя попытка - ищем по источнику и любому месяцу
+                                        source_only_mask = (payments_df_source_clean == source_clean)
+                                        if source_only_mask.any():
+                                            # Берем первую найденную строку с этим источником
+                                            first_match_idx = source_only_mask.idxmax()
+                                            payments_df.loc[first_match_idx, 'Оплаты'] = amount
+                                            st.success(f"✅ Обновлена строка в payments_df (по источнику): {month_str} | {source}")
+                                        else:
+                                            st.warning(f"⚠️ Не найдена строка в payments_df: {month_str} | {source}")
+                                
+                                # Также обновляем основную таблицу display_df
+                                display_df_month_clean = display_df['Месяц'].astype(str).str.strip().str.lower()
+                                display_df_source_clean = display_df['Источник трафика'].astype(str).str.strip().str.lower()
+                                
+                                display_mask = (display_df_month_clean == month_str_clean) & (display_df_source_clean == source_clean)
+                                
+                                if display_mask.any():
+                                    display_df.loc[display_mask, 'Оплаты'] = amount
+                                    st.success(f"✅ Обновлена строка в display_df: {month_str} | {source}")
+                                else:
+                                    # Пробуем найти по частичному совпадению месяца
+                                    partial_display_mask = (display_df_month_clean.str.contains(month_partial_clean, na=False)) & (display_df_source_clean == source_clean)
+                                    if partial_display_mask.any():
+                                        display_df.loc[partial_display_mask, 'Оплаты'] = amount
+                                        st.success(f"✅ Обновлена строка в display_df (частичное совпадение): {month_str} | {source}")
+                                    else:
+                                        # Последняя попытка - ищем по источнику и любому месяцу
+                                        display_source_only_mask = (display_df_source_clean == source_clean)
+                                        if display_source_only_mask.any():
+                                            # Берем первую найденную строку с этим источником
+                                            first_display_match_idx = display_source_only_mask.idxmax()
+                                            display_df.loc[first_display_match_idx, 'Оплаты'] = amount
+                                            st.success(f"✅ Обновлена строка в display_df (по источнику): {month_str} | {source}")
+                                        else:
+                                            st.warning(f"⚠️ Не найдена строка в display_df: {month_str} | {source}")
+                            
+                            # Обновляем итоговые строки в payments_df
+                            for idx, row in payments_df.iterrows():
+                                if row['Источник трафика'] == 'ИТОГО ПО МЕСЯЦУ':
+                                    month = row['Месяц']
+                                    month_payments = payments_df[
+                                        (payments_df['Месяц'] == month) & 
+                                        (payments_df['Источник трафика'] != 'ИТОГО ПО МЕСЯЦУ')
+                                    ]['Оплаты'].sum()
+                                    payments_df.loc[idx, 'Оплаты'] = month_payments
+                                
+                                elif row['Источник трафика'] != 'ВСЕ ИСТОЧНИКИ':
+                                    source = row['Источник трафика']
+                                    source_payments = payments_df[
+                                        (payments_df['Источник трафика'] == source) & 
+                                        (payments_df['Месяц'] != 'Итого')
+                                    ]['Оплаты'].sum()
+                                    payments_df.loc[idx, 'Оплаты'] = source_payments
+                            
+                            # Общая итоговая строка в payments_df
+                            total_mask = (payments_df['Месяц'] == 'Итого') & (payments_df['Источник трафика'] == 'ВСЕ ИСТОЧНИКИ')
+                            if total_mask.any():
+                                payments_df.loc[total_mask, 'Оплаты'] = total_payments
+                            
+                            # Обновляем итоговые строки в основной таблице display_df
+                            for idx, row in display_df.iterrows():
+                                if row['Источник трафика'] == 'ИТОГО ПО МЕСЯЦУ':
+                                    month = row['Месяц']
+                                    month_payments = display_df[
+                                        (display_df['Месяц'] == month) & 
+                                        (display_df['Источник трафика'] != 'ИТОГО ПО МЕСЯЦУ')
+                                    ]['Оплаты'].sum()
+                                    display_df.loc[idx, 'Оплаты'] = month_payments
+                                
+                                elif row['Источник трафика'] != 'ВСЕ ИСТОЧНИКИ':
+                                    source = row['Источник трафика']
+                                    source_payments = display_df[
+                                        (display_df['Источник трафика'] == source) & 
+                                        (display_df['Месяц'] != 'Итого')
+                                    ]['Оплаты'].sum()
+                                    display_df.loc[idx, 'Оплаты'] = source_payments
+                            
+                            # Общая итоговая строка в display_df
+                            display_total_mask = (display_df['Месяц'] == 'Итого') & (display_df['Источник трафика'] == 'ВСЕ ИСТОЧНИКИ')
+                            if display_total_mask.any():
+                                display_df.loc[display_total_mask, 'Оплаты'] = total_payments
+                            
+                            st.success(f"✅ Столбец 'Оплаты' заполнен! Общая сумма: {total_payments:,.2f} руб.")
+                            st.info(f"📊 Обработано лидов: {processed_leads}, найдено оплат: {found_payments_count}")
+                            st.info(f"📊 Размер словаря оплат: {len(payments_by_month_source)}")
+                            
+                        except Exception as e:
+                            st.error(f"❌ Ошибка при загрузке данных о продажах: {str(e)}")
+                            st.info("ℹ️ Столбец 'Оплаты' останется пустым")
+                        
+                        # Показываем таблицу оплат по источникам
+                        st.dataframe(payments_df, use_container_width=True)
+                        
+                        # ===== КОНЕЦ ТАБЛИЦЫ ОПЛАТ =====
                         
                         # Графики убраны для упрощения
                         
